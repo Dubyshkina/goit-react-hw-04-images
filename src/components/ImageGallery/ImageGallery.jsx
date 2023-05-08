@@ -54,6 +54,7 @@ export const ImageGallery = ({ propQuery }) => {
 
   return (
     <>
+    {error && <p>Oops...</p>}
       <ul className={s.ImageGallery}>
         {images.map(image => (
           <ImageGalleryItem
