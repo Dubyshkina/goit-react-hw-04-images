@@ -1,107 +1,75 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import s from './ImageGallery.module.css';
-import ImageGalleryItem from 'components/ImageGalleryItem/ImageGalleryItem';
+import { ImageGalleryItem } from 'components/ImageGalleryItem/ImageGalleryItem';
 import PropTypes from 'prop-types';
-import Loader from 'components/Loader/Loader';
-import Button from 'components/Button/Button';
-import Modal from 'components/Modal/Modal';
+import { Loader } from 'components/Loader/Loader';
+import { Button } from 'components/Button/Button';
+import { Modal } from 'components/Modal/Modal';
 import fetchImagesWithQuery from '../../Services/Api';
 
-class ImageGallery extends Component {
+export const ImageGallery = ({ propQuery }) => {
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dataModal, setDataModal] = useState({ image: '', alt: '' });
+  const [loadMore, setLoadMore] = useState(false);
 
-  state = {
-    images: [],
-    isLoading: false,
-    error: null,
-    query: '',
-    page: 1,
-    isModalOpen: false,
-    dataModal: { image: '', alt: '' },
-    loadMore: false,
-    
+  useEffect(() => {
+    if (propQuery !== query) {
+      setPage(1);
+      setQuery(propQuery);
+    }
+  }, [propQuery, query]);
+
+  useEffect(() => {
+    if (!query) {
+      return;
+    }
+    const getSearchedImages = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchImagesWithQuery(propQuery, page);
+        setImages(prev => (page === 1 ? data.hits : [...prev, ...data.hits]));
+        page * 12 < data.totalHits ? setLoadMore(true) : setLoadMore(false);
+      } catch (error) {
+        setError({ error: error.message });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    getSearchedImages();
+  }, [query, page]);
+
+  const changePage = () => {
+    setPage(prev => prev + 1);
   };
 
-  static getDerivedStateFromProps(props, state) {
-    const { query } = props;
-    if (query !== state.query) {
-      return { page: 1, query, images: [] };
-    }
-    return null;
-  }
-
-  getSnapshotBeforeUpdate() {
-    return document.body.clientHeight + 72;
-  }
-
-  componentDidUpdate(prevProps, prevState, snapshot) {
-    if (
-      (prevProps.query !== this.props.query && this.props.query) ||
-      prevState.page !== this.state.page
-    ) {
-      this.getSearchedImages();
-    }
-    if (prevState.images !== this.state.images && this.state.page !== 1) {
-      window.scrollTo({
-        top: snapshot,
-        behavior: 'smooth',
-      });
-    }
-  }
-  
-  getSearchedImages = async () => {
-    this.setState({ isLoading: true });
-    try {
-      const data = await fetchImagesWithQuery(
-        this.props.query,
-        this.state.page
-      );
-      this.setState(prev => ({ images: [...prev.images, ...data.hits] }));
-      if((this.state.page*12)<data.totalHits) {
-        this.setState(()=>({loadMore:true}))}
-        else this.setState(()=>({loadMore:false}))
-    } catch (error) {
-      this.setState({ error: error.message });
-    } finally {
-      this.setState({ isLoading: false });
-    }
+  const openModal = (image, alt) => {
+    setIsModalOpen(!isModalOpen);
+    setDataModal({ image, alt });
   };
 
-  changePage = () => {
-    this.setState(prev => ({ page: prev.page + 1 }));
-  };
+  return (
+    <>
+      <ul className={s.ImageGallery}>
+        {images.map(image => (
+          <ImageGalleryItem
+            key={image.id}
+            image={image}
+            openModal={openModal}
+          />
+        ))}
+      </ul>
+      {isLoading && <Loader />}
+      {loadMore && <Button onClick={changePage} />}
+      {isModalOpen && <Modal image={dataModal} onClose={openModal} />}
+    </>
+  );
+};
 
-  openModal = (image, alt) => {
-    this.setState(({ isModalOpen }) => ({
-      isModalOpen: !isModalOpen,
-      dataModal: { image, alt },
-    }));
-  };
-
-  render() {
-    
-    return (
-      <>
-        <ul className={s.ImageGallery}>
-          {this.state.images.map(image => (
-            <ImageGalleryItem
-              key={image.id}
-              image={image}
-              openModal={this.openModal}
-            />
-          ))}
-        </ul>
-        {this.state.isLoading && <Loader />}
-        {this.state.loadMore && <Button onClick={this.changePage} />}
-        {this.state.isModalOpen && (
-          <Modal image={this.state.dataModal} onClose={this.openModal} />
-        )}
-      </>
-    );
-  }
-}
-
-ImageGallery.propTypes={
-  query: PropTypes.string.isRequired,
-}
-
-export default ImageGallery;
+ImageGallery.propTypes = {
+  propQuery: PropTypes.string.isRequired,
+};

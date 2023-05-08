@@ -1,11 +1,8 @@
-import { Component } from 'react';
+
 import { Rings } from 'react-loader-spinner';
 import s from './Loader.module.css';
 
-class Loader extends Component {
-
-  render() {
-    
+export const Loader = () => {
     return (
       <div className={s.Loader}>
         <Rings
@@ -18,7 +15,6 @@ class Loader extends Component {
       />
       </div>
     );
-  }
 }
 
-export default Loader;
+
