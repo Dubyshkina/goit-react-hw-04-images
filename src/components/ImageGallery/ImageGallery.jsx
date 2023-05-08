@@ -41,7 +41,7 @@ export const ImageGallery = ({ propQuery }) => {
       }
     };
     getSearchedImages();
-  }, [query, page]);
+  }, [query, page, propQuery]);
 
   const changePage = () => {
     setPage(prev => prev + 1);
